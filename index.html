@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00aaff">
+  <title>Etherea AI</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+    }
+
+    #ethereaVideo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: #000;
+      z-index: 1;
+    }
+
+    #characterImage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
+
+    #characterImage img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    #wakePrompt {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1.2rem;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #wakePrompt.show {
+      opacity: 1;
+    }
+
+    #pageToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #pageToggle:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: scale(1.1);
+    }
+
+    #pageToggle::before {
+      content: "⚙";
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    #statusIndicator {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 20px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #statusIndicator.show {
+      opacity: 1;
+    }
+
+    /* Updated characterImage styling for proper canvas overlay */
+    #characterImage {
+      position: relative;
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #ethereaCharacter {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    #lipsyncCanvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Breathing animation when not speaking */
+    .breathing {
+      animation: breathe 4s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.005); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Intro Video -->
+  <video id="ethereaVideo" autoplay muted playsinline>
+    <source src="assets/videos/Etherea.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <!-- Static Character Image -->
+  <div id="characterImage">
+    <img src="assets/images/etherea-character.png" alt="Etherea" id="ethereaCharacter">
+    <canvas id="lipsyncCanvas"></canvas>
+  </div>
+
+  <!-- Wake Word Prompt -->
+  <div id="wakePrompt">Say "Hey Darling" to start...</div>
+
+  <!-- Settings Toggle -->
+  <button id="pageToggle" title="Settings"></button>
+
+  <!-- Status Indicator -->
+  <div id="statusIndicator">Initializing...</div>
+
+  <!-- Hidden Audio Player -->
+  <audio id="audioPlayer" preload="auto"></audio>
+
+  <script>
+    class EthereaLipsync {
+      constructor() {
+        this.img = document.getElementById('ethereaCharacter');
+        this.canvas = document.getElementById('lipsyncCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.lipsyncInterval = null;
+        this.isActive = false;
+        
+        this.setupCanvas();
+      }
+
+      setupCanvas() {
+        const syncSize = () => {
+          if (this.img.offsetWidth > 0 && this.img.offsetHeight > 0) {
+            this.canvas.width = this.img.offsetWidth;
+            this.canvas.height = this.img.offsetHeight;
+          }
+        };
+        
+        this.img.onload = syncSize;
+        window.addEventListener('resize', syncSize);
+        
+        // Initial sync after a short delay to ensure image is loaded
+        setTimeout(syncSize, 100);
+      }
+
+      startLipsync() {
+        if (this.isActive) return;
+        
+        console.log('🎭 Starting lipsync animation');
+        this.isActive = true;
+        let mouthOpen = false;
+        
+        this.lipsyncInterval = setInterval(() => {
+          if (!this.isActive) return;
+          
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          
+          // Calculate mouth position (adjust these values for your character)
+          const mouthX = this.canvas.width * 0.5;   // Center horizontally
+          const mouthY = this.canvas.height * 0.72; // Adjust based on your character's mouth position
+          
+          this.ctx.fillStyle = "#2a1810"; // Dark mouth color - adjust to match your character
+          this.ctx.beginPath();
+          
+          if (mouthOpen) {
+            // Open mouth - oval shape
+            this.ctx.ellipse(mouthX, mouthY, 28, 16, 0, 0, 2 * Math.PI);
+          } else {
+            // Closed mouth - thin rectangle
+            this.ctx.rect(mouthX - 24, mouthY - 2, 48, 4);
+          }
+          
+          this.ctx.fill();
+          mouthOpen = !mouthOpen;
+          
+        }, 120 + Math.random() * 60); // Slightly random timing for natural feel
+      }
+
+      stopLipsync() {
+        console.log('🎭 Stopping lipsync animation');
+        this.isActive = false;
+        if (this.lipsyncInterval) {
+          clearInterval(this.lipsyncInterval);
+          this.lipsyncInterval = null;
+        }
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+
+      // Optional: More advanced mouth shapes
+      drawMouthShape(shape) {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        const mouthX = this.canvas.width * 0.5;
+        const mouthY = this.canvas.height * 0.72;
+        
+        this.ctx.fillStyle = "#2a1810";
+        this.ctx.beginPath();
+        
+        switch(shape) {
+          case 'closed':
+            this.ctx.rect(mouthX - 24, mouthY - 2, 48, 4);
+            break;
+          case 'open':
+            this.ctx.ellipse(mouthX, mouthY, 28, 16, 0, 0, 2 * Math.PI);
+            break;
+          case 'wide':
+            this.ctx.ellipse(mouthX, mouthY, 35, 12, 0, 0, 2 * Math.PI);
+            break;
+          case 'kiss':
+            this.ctx.ellipse(mouthX, mouthY, 15, 20, 0, 0, 2 * Math.PI);
+            break;
+        }
+        
+        this.ctx.fill();
+      }
+    }
+
+    class EthereaInterface {
+      constructor() {
+        this.video = document.getElementById('ethereaVideo');
+        this.characterImage = document.getElementById('characterImage');
+        this.ethereaCharacter = document.getElementById('ethereaCharacter');
+        this.wakePrompt = document.getElementById('wakePrompt');
+        this.pageToggle = document.getElementById('pageToggle');
+        this.statusIndicator = document.getElementById('statusIndicator');
+        this.audioPlayer = document.getElementById('audioPlayer');
+
+        this.isListeningForWakeWord = false;
+        this.currentMode = 'conversation'; // Default mode
+        this.backends = {
+          conversation: 'ws://localhost:8002/ws',
+          business: 'ws://localhost:8000/ws'
+        };
+        this.socket = null;
+
+        // Initialize lipsync
+        this.lipsync = new EthereaLipsync();
+
+        this.init();
+      }
+
+      init() {
+        this.setupVideoEvents();
+        this.setupWakeWordDetection();
+        this.setupToggleButton();
+        this.showStatus('Ready');
+        
+        // Start breathing animation when character appears
+        this.ethereaCharacter.classList.add('breathing');
+      }
+
+      setupVideoEvents() {
+        this.video.addEventListener('ended', () => {
+          this.video.style.display = 'none';
+          this.characterImage.style.display = 'flex';
+          this.wakePrompt.style.display = 'block';
+          
+          setTimeout(() => {
+            this.wakePrompt.classList.add('show');
+            this.startWakeWordDetection();
+          }, 500);
+        });
+
+        this.video.addEventListener('error', () => {
+          // Skip video and go straight to character
+          this.video.style.display = 'none';
+          this.characterImage.style.display = 'flex';
+          this.wakePrompt.style.display = 'block';
+          this.wakePrompt.classList.add('show');
+          this.startWakeWordDetection();
+        });
+      }
+
+      setupWakeWordDetection() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (SpeechRecognition) {
+          this.wakeWordRecognition = new SpeechRecognition();
+          this.wakeWordRecognition.continuous = true;
+          this.wakeWordRecognition.interimResults = false;
+          this.wakeWordRecognition.lang = 'en-US';
+
+          this.wakeWordRecognition.onresult = (event) => {
+            const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+            console.log('👂 Heard:', transcript);
+            
+            if (transcript.includes('hey darling') || transcript.includes('hey etherea')) {
+              this.onWakeWordDetected();
+            }
+          };
+
+          this.wakeWordRecognition.onerror = (event) => {
+            console.log('Wake word detection error:', event.error);
+            // Restart after a delay
+            setTimeout(() => {
+              if (this.isListeningForWakeWord) {
+                this.startWakeWordDetection();
+              }
+            }, 2000);
+          };
+        }
+      }
+
+      startWakeWordDetection() {
+        if (this.wakeWordRecognition && !this.isListeningForWakeWord) {
+          this.isListeningForWakeWord = true;
+          this.wakeWordRecognition.start();
+          this.showStatus('Listening for wake word...');
+        }
+      }
+
+      onWakeWordDetected() {
+        this.isListeningForWakeWord = false;
+        this.wakeWordRecognition.stop();
+        
+        this.wakePrompt.textContent = "I'm listening...";
+        this.showStatus('Wake word detected');
+        
+        // Connect to appropriate backend and start conversation
+        this.connectToBackend();
+        this.startConversation();
+      }
+
+      connectToBackend() {
+        if (this.socket) this.socket.close();
+        
+        this.socket = new WebSocket(this.backends[this.currentMode]);
+        
+        this.socket.onopen = () => {
+          console.log(`Connected to ${this.currentMode} backend`);
+          this.showStatus(`${this.currentMode} mode active`);
+        };
+
+        this.socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'text_frame' && data.text) {
+            this.speakResponse(data.text);
+          }
+        };
+
+        this.socket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          this.showStatus('Connection error');
+        };
+
+        this.socket.onclose = () => {
+          console.log('WebSocket connection closed');
+        };
+      }
+
+      startConversation() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) return;
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.continuous = false;
+
+        recognition.onresult = (event) => {
+          const message = event.results[0][0].transcript.trim();
+          console.log('💬 User said:', message);
+          
+          if (message && this.socket && this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(JSON.stringify({
+              type: 'text_frame',
+              text: message
+            }));
+          }
+        };
+
+        recognition.onend = () => {
+          // Restart listening after a short delay
+          setTimeout(() => this.startConversation(), 1000);
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          setTimeout(() => this.startConversation(), 2000);
+        };
+
+        recognition.start();
+      }
+
+      speakResponse(text) {
+        console.log('🎭 Etherea speaking:', text);
+        
+        // Stop breathing animation and start speaking
+        this.ethereaCharacter.classList.remove('breathing');
+        
+        // Use your voice service or fallback TTS
+        this.speakWithTTS(text);
+      }
+
+      async speakWithTTS(text) {
+        try {
+          const response = await fetch('http://localhost:8004/synthesize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+          });
+
+          if (response.ok) {
+            const audioBlob = await response.blob();
+            this.audioPlayer.src = URL.createObjectURL(audioBlob);
+            
+            // Setup audio events for lipsync
+            this.audioPlayer.onplay = () => {
+              this.lipsync.startLipsync();
+            };
+            
+            this.audioPlayer.onended = () => {
+              this.lipsync.stopLipsync();
+              this.ethereaCharacter.classList.add('breathing');
+              URL.revokeObjectURL(this.audioPlayer.src);
+            };
+            
+            this.audioPlayer.onerror = () => {
+              this.lipsync.stopLipsync();
+              this.ethereaCharacter.classList.add('breathing');
+              console.error('Audio playback error');
+            };
+            
+            await this.audioPlayer.play();
+          } else {
+            throw new Error('Voice service unavailable');
+          }
+        } catch (error) {
+          console.warn('🔄 Voice service unavailable, using fallback TTS');
+          // Fallback to browser TTS with lipsync
+          this.fallbackTTSWithLipsync(text);
+        }
+      }
+
+      fallbackTTSWithLipsync(text) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        
+        // Get better voice if available
+        const voices = speechSynthesis.getVoices();
+        const preferredVoice = voices.find(v => 
+          v.name.includes('Zira') || 
+          v.name.includes('Samantha') || 
+          v.lang === 'en-GB'
+        );
+        if (preferredVoice) {
+          utterance.voice = preferredVoice;
+        }
+        
+        utterance.onstart = () => {
+          this.lipsync.startLipsync();
+        };
+        
+        utterance.onend = () => {
+          this.lipsync.stopLipsync();
+          this.ethereaCharacter.classList.add('breathing');
+        };
+        
+        utterance.onerror = () => {
+          this.lipsync.stopLipsync();
+          this.ethereaCharacter.classList.add('breathing');
+        };
+        
+        speechSynthesis.speak(utterance);
+      }
+
+      setupToggleButton() {
+        this.pageToggle.addEventListener('click', () => {
+          window.location.href = 'settings.html';
+        });
+      }
+
+      showStatus(message) {
+        this.statusIndicator.textContent = message;
+        this.statusIndicator.classList.add('show');
+        setTimeout(() => {
+          this.statusIndicator.classList.remove('show');
+        }, 3000);
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🚀 Initializing Etherea OS...');
+      new EthereaInterface();
+    });
+  </script>
+</body>
+</html>

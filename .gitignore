@@ -1,0 +1,34 @@
+# Python virtual environments
+venv/
+voice_env/
+backend-services/voice-service/voice_env/
+backend-services/*/venv/
+backend-services/*/.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Large binaries
+*.dll
+*.lib
+*.so
+*.dat
+*.bin
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Model files (if you have large AI models)
+*.pt
+*.h5
+*.ckpt
+*.pkl
+
+# Only include your PWA files, not backends
+backend-services/

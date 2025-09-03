@@ -1,0 +1,16 @@
+{
+  "name": "Etherea AI Companion",
+  "short_name": "Etherea",
+  "description": "Advanced AI companion with natural voice interaction",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00aaff",
+  "icons": [
+    {
+      "src": "assets/images/etherea-character.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

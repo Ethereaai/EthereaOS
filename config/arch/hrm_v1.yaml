@@ -1,0 +1,25 @@
+# HRM V1 Configuration
+model:
+  name: "HierarchicalReasoningModel_ACTV1"
+  hidden_size: 768
+  num_layers: 12
+  num_heads: 12
+  intermediate_size: 3072
+  max_position_embeddings: 2048
+  vocab_size: 50257
+
+training:
+  batch_size: 32
+  learning_rate: 1e-4
+  warmup_steps: 1000
+  max_steps: 10000
+
+inference:
+  max_length: 512
+  temperature: 0.7
+  top_p: 0.9
+  
+reasoning:
+  depth_levels: 3
+  carry_mechanism: true
+  sapient_mode: true

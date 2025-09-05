@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EthereaOS Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .dashboard-header {
+      background: rgba(0, 170, 255, 0.1);
+      border-bottom: 1px solid rgba(0, 170, 255, 0.3);
+      padding: 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .dashboard-title {
+      font-size: 2rem;
+      font-weight: bold;
+      background: linear-gradient(45deg, #00aaff, #0088cc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .breadcrumb {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Quick Stats Bar */
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, rgba(0, 170, 255, 0.1), rgba(0, 136, 204, 0.1));
+      border: 1px solid rgba(0, 170, 255, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 170, 255, 0.2);
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #00aaff;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 4px;
+    }
+
+    .stat-trend {
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    .trend-up { color: #4CAF50; }
+    .trend-down { color: #f44336; }
+    .trend-stable { color: #ff9800; }
+
+    /* Charts Grid */
+    .charts-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .chart-card {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(0, 170, 255, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .chart-card:hover {
+      border-color: rgba(0, 170, 255, 0.5);
+      box-shadow: 0 4px 20px rgba(0, 170, 255, 0.1);
+    }
+
+    .chart-header {
+      background: rgba(0, 170, 255, 0.1);
+      padding: 16px;
+      border-bottom: 1px solid rgba(0, 170, 255, 0.2);
+    }
+
+    .chart-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #00aaff;
+    }
+
+    .chart-subtitle {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 4px;
+    }
+
+    .chart-body {
+      height: 300px;
+      padding: 10px;
+    }
+
+    /* Process Table */
+    .process-section {
+      margin: 20px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(0, 170, 255, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .process-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .process-table th {
+      background: rgba(0, 170, 255, 0.2);
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #00aaff;
+      border-bottom: 1px solid rgba(0, 170, 255, 0.3);
+    }
+
+    .process-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .process-table tr:hover {
+      background: rgba(0, 170, 255, 0.1);
+    }
+
+    /* Navigation */
+    .nav-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0, 170, 255, 0.3);
+      padding: 10px;
+      z-index: 100;
+    }
+
+    .nav-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 12px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-tab.active {
+      background: linear-gradient(135deg, #00aaff, #0088cc);
+      color: white;
+    }
+
+    .nav-tab:hover:not(.active) {
+      background: rgba(0, 170, 255, 0.2);
+      color: white;
+    }
+
+    /* Voice Control */
+    .voice-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00aaff, #0088cc);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+
+    .voice-indicator:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 20px rgba(0, 170, 255, 0.4);
+    }
+
+    .voice-indicator.listening {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 170, 255, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(0, 170, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 170, 255, 0); }
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .charts-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 15px;
+      }
+
+      .chart-body {
+        height: 250px;
+      }
+
+      .quick-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        padding: 15px;
+      }
+
+      .dashboard-title {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Status Indicators */
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-healthy { background: #4CAF50; }
+    .status-warning { background: #ff9800; }
+    .status-critical { background: #f44336; }
+
+    /* Loading Animation */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">EthereaOS Dashboard</h1>
+    <div class="breadcrumb">Real-time Server Monitoring & AI Analysis</div>
+  </div>
+
+  <!-- Voice Control Indicator -->
+  <div class="voice-indicator" id="voiceIndicator" title="Voice Commands">
+    🎤
+  </div>
+
+  <!-- Quick Stats Bar -->
+  <div class="quick-stats" id="quickStats">
+    <div class="stat-card">
+      <div class="stat-value" id="cpuStat">--</div>
+      <div class="stat-label">CPU Usage</div>
+      <div class="stat-trend" id="cpuTrend">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="memoryStat">--</div>
+      <div class="stat-label">Memory</div>
+      <div class="stat-trend" id="memoryTrend">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="diskStat">--</div>
+      <div class="stat-label">Disk Usage</div>
+      <div class="stat-trend" id="diskTrend">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="networkStat">--</div>
+      <div class="stat-label">Network</div>
+      <div class="stat-trend" id="networkTrend">--</div>
+    </div>
+  </div>
+
+  <!-- Charts Container -->
+  <div class="charts-container">
+    <!-- CPU Usage Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <span class="status-indicator status-healthy"></span>
+          CPU Usage
+        </div>
+        <div class="chart-subtitle">Real-time processor utilization per core</div>
+      </div>
+      <div class="chart-body" id="cpuChart"></div>
+    </div>
+
+    <!-- Memory Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <span class="status-indicator status-healthy"></span>
+          Memory Usage
+        </div>
+        <div class="chart-subtitle">RAM utilization and trends</div>
+      </div>
+      <div class="chart-body" id="memoryChart"></div>
+    </div>
+
+    <!-- Disk I/O Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <span class="status-indicator status-healthy"></span>
+          Disk I/O
+        </div>
+        <div class="chart-subtitle">Read/write operations per second</div>
+      </div>
+      <div class="chart-body" id="diskChart"></div>
+    </div>
+
+    <!-- Network Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <span class="status-indicator status-healthy"></span>
+          Network Traffic
+        </div>
+        <div class="chart-subtitle">Upload/download speeds</div>
+      </div>
+      <div class="chart-body" id="networkChart"></div>
+    </div>
+  </div>
+
+  <!-- Process Table -->
+  <div class="process-section">
+    <div class="chart-header">
+      <div class="chart-title">Top Processes</div>
+      <div class="chart-subtitle">Real-time process monitoring</div>
+    </div>
+    <table class="process-table">
+      <thead>
+        <tr>
+          <th>PID</th>
+          <th>Process Name</th>
+          <th>CPU %</th>
+          <th>Memory %</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="processTableBody">
+        <tr>
+          <td colspan="5" class="loading">Loading process data...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-container">
+    <div class="nav-tabs">
+      <button class="nav-tab" onclick="navigateTo('index.html')">
+        💬 Chat
+      </button>
+      <button class="nav-tab active" onclick="navigateTo('dashboard.html')">
+        📊 Dashboard
+      </button>
+      <button class="nav-tab" onclick="navigateTo('settings.html')">
+        ⚙️ Settings
+      </button>
+    </div>
+  </div>
+
+  <script>
+    class EthereaDashboard {
+      constructor() {
+        this.socket = null;
+        this.isVoiceListening = false;
+        this.dataBuffer = {
+          cpu: [],
+          memory: [],
+          disk: [],
+          network: []
+        };
+        this.maxDataPoints = 60; // 1 minute of data at 1-second intervals
+        
+        this.init();
+      }
+
+      init() {
+        console.log('🚀 Initializing Etherea Dashboard...');
+        this.setupWebSocket();
+        this.setupVoiceCommands();
+        this.initializeCharts();
+        this.startDataCollection();
+      }
+
+      setupWebSocket() {
+        this.socket = new WebSocket('ws://localhost:8000/ws');
+        
+        this.socket.onopen = () => {
+          console.log('✅ Connected to Etherea backend');
+          this.requestSystemMetrics();
+        };
+
+        this.socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          this.handleIncomingData(data);
+        };
+
+        this.socket.onerror = (error) => {
+          console.error('❌ WebSocket error:', error);
+          this.showConnectionError();
+        };
+
+        this.socket.onclose = () => {
+          console.log('🔌 Connection closed, attempting reconnect...');
+          setTimeout(() => this.setupWebSocket(), 5000);
+        };
+      }
+
+      setupVoiceCommands() {
+        const voiceIndicator = document.getElementById('voiceIndicator');
+        
+        voiceIndicator.addEventListener('click', () => {
+          this.toggleVoiceCommands();
+        });
+
+        // Initialize speech recognition
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          this.recognition = new SpeechRecognition();
+          this.recognition.continuous = false;
+          this.recognition.interimResults = false;
+          this.recognition.lang = 'en-US';
+
+          this.recognition.onresult = (event) => {
+            const command = event.results[0][0].transcript.toLowerCase();
+            this.processVoiceCommand(command);
+          };
+
+          this.recognition.onend = () => {
+            voiceIndicator.classList.remove('listening');
+            this.isVoiceListening = false;
+          };
+        }
+      }
+
+      toggleVoiceCommands() {
+        const voiceIndicator = document.getElementById('voiceIndicator');
+        
+        if (!this.isVoiceListening && this.recognition) {
+          this.recognition.start();
+          voiceIndicator.classList.add('listening');
+          this.isVoiceListening = true;
+        }
+      }
+
+      processVoiceCommand(command) {
+        console.log('🎤 Voice command:', command);
+        
+        if (command.includes('cpu usage') || command.includes('processor')) {
+          this.highlightChart('cpuChart');
+          this.speakResponse(`Current CPU usage is at ${this.getLatestCPU()}%`);
+        } else if (command.includes('memory') || command.includes('ram')) {
+          this.highlightChart('memoryChart');
+          this.speakResponse(`Memory usage is ${this.getLatestMemory()}%`);
+        } else if (command.includes('disk') || command.includes('storage')) {
+          this.highlightChart('diskChart');
+          this.speakResponse(`Disk usage is ${this.getLatestDisk()}%`);
+        } else if (command.includes('network') || command.includes('bandwidth')) {
+          this.highlightChart('networkChart');
+          this.speakResponse(`Network activity is ${this.getLatestNetwork()}`);
+        } else if (command.includes('everything normal') || command.includes('system health')) {
+          this.speakResponse(this.getSystemHealthSummary());
+        }
+      }
+
+      initializeCharts() {
+        this.initCPUChart();
+        this.initMemoryChart();
+        this.initDiskChart();
+        this.initNetworkChart();
+      }
+
+      initCPUChart() {
+        const layout = {
+          title: '',
+          paper_bgcolor: 'transparent',
+          plot_bgcolor: 'transparent',
+          font: { color: '#ffffff' },
+          xaxis: {
+            title: 'Time',
+            gridcolor: 'rgba(255, 255, 255, 0.1)',
+            type: 'date'
+          },
+          yaxis: {
+            title: 'CPU %',
+            range: [0, 100],
+            gridcolor: 'rgba(255, 255, 255, 0.1)'
+          },
+          margin: { l: 50, r: 20, t: 20, b: 50 }
+        };
+
+        const data = [{
+          x: [],
+          y: [],
+          type: 'scatter',
+          mode: 'lines',
+          name: 'CPU Usage',
+          line: { color: '#00aaff', width: 2 }
+        }];
+
+        Plotly.newPlot('cpuChart', data, layout, {
+          responsive: true,
+          displayModeBar: false
+        });
+      }
+
+      initMemoryChart() {
+        const layout = {
+          title: '',
+          paper_bgcolor: 'transparent',
+          plot_bgcolor: 'transparent',
+          font: { color: '#ffffff' },
+          margin: { l: 20, r: 20, t: 20, b: 20 }
+        };
+
+        const data = [{
+          domain: { x: [0, 1], y: [0, 1] },
+          value: 0,
+          title: { text: "Memory %" },
+          type: "indicator",
+          mode: "gauge+number",
+          gauge: {
+            axis: { range: [null, 100] },
+            bar: { color: "#00aaff" },
+            steps: [
+              { range: [0, 50], color: "rgba(0, 170, 255, 0.1)" },
+              { range: [50, 80], color: "rgba(255, 152, 0, 0.1)" },
+              { range: [80, 100], color: "rgba(244, 67, 54, 0.1)" }
+            ],
+            threshold: {
+              line: { color: "red", width: 4 },
+              thickness: 0.75,
+              value: 90
+            }
+          }
+        }];
+
+        Plotly.newPlot('memoryChart', data, layout, {
+          responsive: true,
+          displayModeBar: false
+        });
+      }
+
+      initDiskChart() {
+        const layout = {
+          title: '',
+          paper_bgcolor: 'transparent',
+          plot_bgcolor: 'transparent',
+          font: { color: '#ffffff' },
+          xaxis: {
+            title: 'Time',
+            gridcolor: 'rgba(255, 255, 255, 0.1)',
+            type: 'date'
+          },
+          yaxis: {
+            title: 'Operations/sec',
+            gridcolor: 'rgba(255, 255, 255, 0.1)'
+          },
+          margin: { l: 50, r: 20, t: 20, b: 50 }
+        };
+
+        const data = [
+          {
+            x: [],
+            y: [],
+            fill: 'tonexty',
+            type: 'scatter',
+            name: 'Read',
+            line: { color: '#00aaff' }
+          },
+          {
+            x: [],
+            y: [],
+            fill: 'tozeroy',
+            type: 'scatter',
+            name: 'Write',
+            line: { color: '#ff6b6b' }
+          }
+        ];
+
+        Plotly.newPlot('diskChart', data, layout, {
+          responsive: true,
+          displayModeBar: false
+        });
+      }
+
+      initNetworkChart() {
+        const layout = {
+          title: '',
+          paper_bgcolor: 'transparent',
+          plot_bgcolor: 'transparent',
+          font: { color: '#ffffff' },
+          xaxis: {
+            title: 'Time',
+            gridcolor: 'rgba(255, 255, 255, 0.1)',
+            type: 'date'
+          },
+          yaxis: {
+            title: 'Speed (KB/s)',
+            gridcolor: 'rgba(255, 255, 255, 0.1)'
+          },
+          margin: { l: 50, r: 20, t: 20, b: 50 }
+        };
+
+        const data = [
+          {
+            x: [],
+            y: [],
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Download',
+            line: { color: '#4CAF50', width: 2 }
+          },
+          {
+            x: [],
+            y: [],
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Upload',
+            line: { color: '#ff9800', width: 2 }
+          }
+        ];
+
+        Plotly.newPlot('networkChart', data, layout, {
+          responsive: true,
+          displayModeBar: false
+        });
+      }
+
+      requestSystemMetrics() {
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+          this.socket.send(JSON.stringify({
+            type: 'system_metrics_request'
+          }));
+        }
+      }
+
+      handleIncomingData(data) {
+        if (data.type === 'system_metrics') {
+          this.updateDashboard(data.metrics);
+        }
+      }
+
+      updateDashboard(metrics) {
+        this.updateQuickStats(metrics);
+        this.updateCharts(metrics);
+        this.updateProcessTable(metrics.processes || []);
+      }
+
+      updateQuickStats(metrics) {
+        document.getElementById('cpuStat').textContent = `${metrics.cpu?.overall?.toFixed(1) || '--'}%`;
+        document.getElementById('memoryStat').textContent = `${metrics.memory?.percentage?.toFixed(1) || '--'}%`;
+        document.getElementById('diskStat').textContent = `${metrics.disk?.usage_percent?.toFixed(1) || '--'}%`;
+        document.getElementById('networkStat').textContent = `${(metrics.network?.speed_down || 0).toFixed(1)} KB/s`;
+      }
+
+      updateCharts(metrics) {
+        const now = new Date();
+        
+        // Update CPU Chart
+        if (metrics.cpu) {
+          this.dataBuffer.cpu.push({ time: now, value: metrics.cpu.overall });
+          if (this.dataBuffer.cpu.length > this.maxDataPoints) {
+            this.dataBuffer.cpu.shift();
+          }
+          
+          const cpuData = {
+            x: [this.dataBuffer.cpu.map(d => d.time)],
+            y: [this.dataBuffer.cpu.map(d => d.value)]
+          };
+          Plotly.redraw('cpuChart', [cpuData]);
+        }
+
+        // Update Memory Gauge
+        if (metrics.memory) {
+          Plotly.restyle('memoryChart', 'value', [metrics.memory.percentage]);
+        }
+
+        // Add similar updates for disk and network charts...
+      }
+
+      updateProcessTable(processes) {
+        const tbody = document.getElementById('processTableBody');
+        tbody.innerHTML = '';
+        
+        processes.slice(0, 10).forEach(process => {
+          const row = tbody.insertRow();
+          row.innerHTML = `
+            <td>${process.pid}</td>
+            <td>${process.name}</td>
+            <td>${process.cpu_percent?.toFixed(1)}%</td>
+            <td>${process.memory_percent?.toFixed(1)}%</td>
+            <td><span class="status-indicator status-healthy"></span>${process.status}</td>
+          `;
+        });
+      }
+
+      startDataCollection() {
+        setInterval(() => {
+          this.requestSystemMetrics();
+        }, 1000); // Update every second
+      }
+
+      highlightChart(chartId) {
+        // Add visual highlight effect
+        const chart = document.getElementById(chartId).parentElement;
+        chart.style.borderColor = '#00aaff';
+        chart.style.boxShadow = '0 0 20px rgba(0, 170, 255, 0.5)';
+        
+        setTimeout(() => {
+          chart.style.borderColor = 'rgba(0, 170, 255, 0.2)';
+          chart.style.boxShadow = 'none';
+        }, 3000);
+      }
+
+      speakResponse(text) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        speechSynthesis.speak(utterance);
+      }
+
+      getLatestCPU() {
+        return this.dataBuffer.cpu.length > 0 ? 
+          this.dataBuffer.cpu[this.dataBuffer.cpu.length - 1].value.toFixed(1) : '--';
+      }
+
+      getLatestMemory() {
+        return document.getElementById('memoryStat').textContent.replace('%', '');
+      }
+
+      getLatestDisk() {
+        return document.getElementById('diskStat').textContent.replace('%', '');
+      }
+
+      getLatestNetwork() {
+        return document.getElementById('networkStat').textContent;
+      }
+
+      getSystemHealthSummary() {
+        const cpu = parseFloat(this.getLatestCPU());
+        const memory = parseFloat(this.getLatestMemory());
+        const disk = parseFloat(this.getLatestDisk());
+        
+        if (cpu < 70 && memory < 80 && disk < 85) {
+          return "All systems are running normally. CPU, memory, and disk usage are within healthy ranges.";
+        } else {
+          return "Some metrics are elevated. Check the dashboard for details.";
+        }
+      }
+
+      showConnectionError() {
+        // Show user-friendly error message
+        document.getElementById('quickStats').innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; color: #f44336;">
+            ⚠️ Connection to server lost. Attempting to reconnect...
+          </div>
+        `;
+      }
+    }
+
+    // Navigation function
+    function navigateTo(page) {
+      window.location.href = page;
+    }
+
+    // Initialize dashboard when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      new EthereaDashboard();
+    });
+  </script>
+</body>
+</html>
